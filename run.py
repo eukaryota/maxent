@@ -33,6 +33,8 @@ def read_sentences(iterable):
 MIN_WORD_FREQUENCY = 5
 MIN_LABEL_FREQUENCY = 5
 
+#FUNCTION_WORDS = ['de', 'het', 'een', 'la', 'el', 'un', 'los']
+
 def compute_features(data, words, poses, i, previous_label):
     # Condition on previous label.
     if previous_label != "O":
@@ -45,9 +47,9 @@ def compute_features(data, words, poses, i, previous_label):
     if data["word_frequencies"].get(words[i], 0) >= MIN_WORD_FREQUENCY:
         yield "word-current={0}".format(words[i])
         #yield "word-len={0}".format(len(words[i]));
-        #yield "word-prefix3={0}".format(words[i][:3]); not work for spanish, good for dutch
-        #yield "word-suffix3={0}".format(words[i][len(words[i]) - 3:]);
-        #yield "word-prefix5={0}".format(words[i][:7]);
+        yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
+
+    yield "word-is-article={0}".format(poses[i] == 'DA' or poses[i] == 'Art' or poses[i] == 'Prep');
 
     yield "first-word={0}".format(i == 0);
     yield "first-letter-up={0}".format(words[i][0].isupper());
