@@ -44,8 +44,21 @@ def compute_features(data, words, poses, i, previous_label):
     if data["word_frequencies"].get(words[i], 0) >= MIN_WORD_FREQUENCY:
         yield "word-current={0}".format(words[i])
 
-    if words[i][0].isupper():
+    if words[i][0].isupper() and i >= 1:
         yield "first-letter-up=true";
+    else:
+        yield "first-letter-up=false";
+
+    if words[i] == words[i].upper():
+        yield "word-up=true";
+    else:
+        yield "word-up=false";
+
+    #if "." in words[i]:
+    #    yield "with-point=true";
+
+    #if i >= 1 and (words[i-1].lower() == "monseñor" or  words[i-1].lower() == "monseñora"):
+    #    yield "prefix-name=true";
 
     #print data["labelled_words"].get(words[i], dict())
     labels = data["labelled_words"].get(words[i], dict())
