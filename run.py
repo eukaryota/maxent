@@ -6,6 +6,7 @@ import math
 import itertools
 import operator
 import cPickle
+import re
 
 import maxent
 
@@ -43,22 +44,27 @@ def compute_features(data, words, poses, i, previous_label):
     #print words[i]
     if data["word_frequencies"].get(words[i], 0) >= MIN_WORD_FREQUENCY:
         yield "word-current={0}".format(words[i])
+        #yield "word-len={0}".format(len(words[i]));
+        #yield "word-prefix3={0}".format(words[i][:3]); not work for spanish, good for dutch
+        #yield "word-suffix3={0}".format(words[i][len(words[i]) - 3:]);
+        #yield "word-prefix5={0}".format(words[i][:7]);
 
-    if words[i][0].isupper() and i >= 1:
-        yield "first-letter-up=true";
-    else:
-        yield "first-letter-up=false";
-
-    if words[i] == words[i].upper():
-        yield "word-up=true";
-    else:
-        yield "word-up=false";
-
-    #if "." in words[i]:
-    #    yield "with-point=true";
+    yield "first-word={0}".format(i == 0);
+    yield "first-letter-up={0}".format(words[i][0].isupper());
+    yield "word-up={0}".format(words[i] == words[i].upper());
+    yield "word-has-up={0}".format(re.match(r".*[A-Z]", words[i]) != None);
+    yield "word-lower={0}".format(words[i] == words[i].lower());
+    yield "word-is-digit={0}".format(words[i].isdigit());
+    #yield "word-is-alnum={0}".format(words[i].isalnum());
+    yield "word-is-alpha={0}".format(words[i].isalpha());
+    #yield "word-is-point={0}".format("." == words[i]);
+    yield "word-has-digit={0}".format(re.match(r".*\d", words[i]) != None);
+    #yield "word-has-point={0}".format(re.match(r".*[,|.]", words[i]) != None);
 
     #if i >= 1 and (words[i-1].lower() == "monseñor" or  words[i-1].lower() == "monseñora"):
-    #    yield "prefix-name=true";
+    #    yield "prefix-name=True";
+    #else:
+    #    yield "prefix-name=False"
 
     #print data["labelled_words"].get(words[i], dict())
     labels = data["labelled_words"].get(words[i], dict())
