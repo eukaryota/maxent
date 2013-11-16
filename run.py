@@ -37,12 +37,15 @@ def compute_features(data, words, poses, i, previous_label):
     if previous_label != "O":
         yield "label-previous={0}".format(previous_label) 
 
-    if previous_label != "O":
-        yield "pos-previous={0}".format(previous_label) 
+    yield "prev_pos={0}".format(poses[i - 1] if i >= 1 else "^");
+    yield "prevprev_pos={0}".format(poses[i - 2] if i >= 2 else "^");
 
     #print words[i]
     if data["word_frequencies"].get(words[i], 0) >= MIN_WORD_FREQUENCY:
         yield "word-current={0}".format(words[i])
+
+    if words[i][0].isupper():
+        yield "first-letter-up=true";
 
     #print data["labelled_words"].get(words[i], dict())
     labels = data["labelled_words"].get(words[i], dict())
