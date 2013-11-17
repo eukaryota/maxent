@@ -38,18 +38,25 @@ MIN_LABEL_FREQUENCY = 5
 def compute_features(data, words, poses, i, previous_label):
     # Condition on previous label.
     if previous_label != "O":
-        yield "label-previous={0}".format(previous_label) 
+        yield "label-previous={0}".format(previous_label)
 
     yield "prev_pos={0}".format(poses[i - 1] if i >= 1 else "^");
     yield "prevprev_pos={0}".format(poses[i - 2] if i >= 2 else "^");
+    
+    #yield "next-pos={0}".format(poses[i + 1] if i < len(poses) - 1 else "^");
+    #yield "nextnext-pos={0}".format(poses[i + 2] if i < len(poses) - 2 else "^");
+
+    #yield "prefix-word={0}".format("president" in words[i - 1].lower())
 
     #print words[i]
     if data["word_frequencies"].get(words[i], 0) >= MIN_WORD_FREQUENCY:
         yield "word-current={0}".format(words[i])
         #yield "word-len={0}".format(len(words[i]));
         yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
+        #yield "word-prefix4={0}".format(words[i][:4]); #not work for spanish, good for dutch
 
     yield "word-is-article={0}".format(poses[i] == 'DA' or poses[i] == 'Art' or poses[i] == 'Prep');
+    #yield "word-is-punc={0}".format(poses[i] == 'Punc');
 
     yield "first-word={0}".format(i == 0);
     yield "first-letter-up={0}".format(words[i][0].isupper());
@@ -59,7 +66,6 @@ def compute_features(data, words, poses, i, previous_label):
     yield "word-is-digit={0}".format(words[i].isdigit());
     #yield "word-is-alnum={0}".format(words[i].isalnum());
     yield "word-is-alpha={0}".format(words[i].isalpha());
-    #yield "word-is-point={0}".format("." == words[i]);
     yield "word-has-digit={0}".format(re.match(r".*\d", words[i]) != None);
     #yield "word-has-point={0}".format(re.match(r".*[,|.]", words[i]) != None);
 
