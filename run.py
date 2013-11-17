@@ -14,8 +14,6 @@ from collections import defaultdict
 from maxent import MaxentModel
 from optparse import OptionParser
 
-from counter import Counter
-
 # |iterable| should yield lines.
 def read_sentences(iterable):
     sentence = []
@@ -40,22 +38,7 @@ SPANISH = True
 
 #FUNCTION_WORDS = ['de', 'het', 'een', 'la', 'el', 'un', 'los']
 
-# |lpw| lower-cased previous word
-# |w| current word
-# |pl| previous label
-def set_unigrams(lpw, w, pl, uni):
-    if pl  == "O" and w.isupper():
-        if lpw in uni["B-ORG"]:
-            return "unigram-org={0}".format(lpw)
-        if lpw in uni["B-LOC"]:
-            return "unigram-loc={0}".format(lpw)
-        if lpw in uni["B-PER"]:
-            return "unigram-per={0}".format(lpw)
-        if lpw in uni["B-MISC"]:
-            return  "unigram-misc={0}".format(lpw)
-    return ""
-
-def compute_features(data, words, poses, i, previous_label):
+def compute_features(data, words, poses, i, previous_label):    
     # Condition on previous label.
     if previous_label != "O":
         yield "label-previous={0}".format(previous_label)
@@ -70,9 +53,7 @@ def compute_features(data, words, poses, i, previous_label):
     #yield "prev-word-is-number={0}".format(words[i - 1].isdigit() if i > 0 else "False")
 
     if previous_label == '^':
-        if i < len(words) - 1:
-            #if DUTCH:
-            #    yield "next-pos={0}".format(poses[i + 1]);
+       if i < len(words) - 1:
             yield "next-first-letter-up={0}".format(words[i + 1][0].isupper());
             yield "next-word={0}".format(words[i + 1].lower());
 
@@ -89,8 +70,8 @@ def compute_features(data, words, poses, i, previous_label):
     if data["word_frequencies"].get(words[i], 0) >= MIN_WORD_FREQUENCY:
         yield "word-current={0}".format(words[i])
         #yield "word-len={0}".format(len(words[i]));
-        if DUTCH:
-            yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
+        #if DUTCH:
+        #yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
     
     yield "word-is-article={0}".format(poses[i] == 'DA' or poses[i] == 'Art' or poses[i] == 'Prep');
     #yield "word-is-punc={0}".format(poses[i] == 'Punc');
@@ -115,17 +96,13 @@ def compute_features(data, words, poses, i, previous_label):
     #    yield "prefix-name=True";
     #else:
     #    yield "prefix-name=False"
-    uni = set_unigrams(words[i-1].lower(), words[i], previous_label, data["unigrams"])
-    if uni != "":
-        yield uni
 
     labels = data["labelled_words"].get(words[i], dict())
     labels = filter(lambda item: item[1] > MIN_LABEL_FREQUENCY, labels.items())
     for label in labels:
         yield "was-labelled-as={0}".format(label)
 
-    if DUTCH:
-        yield "current-pos={0}".format(poses[i]); #not work for spanish, good for dutch
+    #yield "current-pos={0}".format(poses[i]); #not work for spanish, good for dutch
     pos = data["posed_words"].get(words[i], dict())
     if len(pos) == 0:
         yield "max-pos-current={0}".format(0)
@@ -145,24 +122,14 @@ def train_model(options, iterable):
     # C'est la vie.
     data["labelled_words"] = dict()
     data["posed_words"] = dict()
-    data["unigrams"] = dict()
 
     print >>sys.stderr, "*** Training options are:"
     print >>sys.stderr, "   ", options
 
     print >>sys.stderr, "*** First pass: Computing statistics..."
-
-    unigrams = dict()
-    unigrams["B-ORG"] = defaultdict(long)
-    unigrams["B-MISC"] = defaultdict(long)
-    unigrams["B-LOC"] = defaultdict(long)
-    unigrams["B-PER"] = defaultdict(long)
-
     for n, sentence in enumerate(iterable):
         if (n % 1000) == 0:
             print >>sys.stderr, "   {0:6d} sentences...".format(n)
-        previous_word = "^"
-        previous_label = "^"
         for word, pos, label in sentence:
             data["word_frequencies"][word] += 1
             if label.startswith("B-") or label.startswith("I-"):
@@ -173,27 +140,6 @@ def train_model(options, iterable):
             if word not in data["posed_words"]:
                 data["posed_words"][word] = defaultdict(long)
             data["posed_words"][word][pos] += 1
-
-            if label.startswith("B-") and (previous_word != "^"):
-                unigrams[label][previous_word.lower()] += 1
-
-            previous_label = label
-            previous_word = word
-
-    unigram_counters = [Counter(unigrams[key]) for key in unigrams]
-    total_count = Counter()
-    for counter in unigram_counters:
-         total_count += counter
-
-    total_count = dict(total_count)
-    inv_total_freq  = dict([[key, (math.log(sum(total_count.values()) /  total_count[key]) ** 3)] for key in total_count])
-    
-    for label in unigrams:
-        all_sum = sum([unigrams[label][word] for word in unigrams[label]])
-        uni = sorted([[(1.0 * unigrams[label][word] * inv_total_freq[word] / all_sum ), word] for word in unigrams[label]])
-        uni = [word[1] for word in uni]
-        data["unigrams"][label] = uni[-50:]
-
 
     print >>sys.stderr, "*** Second pass: Collecting features..."
     model.begin_add_event()
@@ -308,11 +254,6 @@ def main():
 
     with open(options.filename, "r") as handle:
         data = list(read_sentences(handle))
-
-    if options.model == "spanish":
-        SPANISH = True
-    if options.model == "dutch":
-        DUTCH = True
 
     if options.train:
         print >>sys.stderr, "*** Training model..."
