@@ -58,7 +58,7 @@ def compute_features(data, words, poses, i, previous_label):
     if previous_label == '^':
        if i < len(words) - 1:
             yield "next-first-letter-up={0}".format(words[i + 1][0].isupper());
-            #yield "next-word={0}".format(words[i + 1].lower());
+            yield "next-word-for-first={0}".format(words[i + 1].lower());
 
     #if i > 0 and poses[i - 1] == Punc:
     #    yield "label-previous={0}".format(previous_label)
