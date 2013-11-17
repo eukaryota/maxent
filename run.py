@@ -30,8 +30,8 @@ def read_sentences(iterable):
 # Computes (local) features for word at position |i| given that label for word
 # at position |i - 1| is |previous_label|. You can pass any additional data
 # via |data| argument.
-MIN_WORD_FREQUENCY = 5
-MIN_LABEL_FREQUENCY = 5
+MIN_WORD_FREQUENCY = 3
+MIN_LABEL_FREQUENCY = 1
 
 #FUNCTION_WORDS = ['de', 'het', 'een', 'la', 'el', 'un', 'los']
 
@@ -39,6 +39,9 @@ def compute_features(data, words, poses, i, previous_label):
     # Condition on previous label.
     if previous_label != "O":
         yield "label-previous={0}".format(previous_label)
+
+    #if i > 0 and poses[i - 1] == Punc:
+    #    yield "label-previous={0}".format(previous_label)
 
     yield "prev_pos={0}".format(poses[i - 1] if i >= 1 else "^");
     yield "prevprev_pos={0}".format(poses[i - 2] if i >= 2 else "^");
@@ -56,14 +59,14 @@ def compute_features(data, words, poses, i, previous_label):
     if data["word_frequencies"].get(words[i], 0) >= MIN_WORD_FREQUENCY:
         yield "word-current={0}".format(words[i])
         #yield "word-len={0}".format(len(words[i]));
-        #yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
+        yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
 
     yield "word-is-article={0}".format(poses[i] == 'DA' or poses[i] == 'Art' or poses[i] == 'Prep');
     #yield "word-is-punc={0}".format(poses[i] == 'Punc');
 
     yield "first-word={0}".format(i == 0);
     yield "first-letter-up={0}".format(words[i][0].isupper());
-    yield "word-letter-lower={0}".format(words[i][0].islower());
+    yield "word-letter-lower={0}".format(words[i][0].islower()); #not work for spanish, good for dutch
 
     yield "word-has-up={0}".format(re.match(r".*[A-Z]", words[i]) != None);
 
@@ -87,7 +90,7 @@ def compute_features(data, words, poses, i, previous_label):
         yield "was-labelled-as={0}".format(label)
 
 
-    yield "current-pos={0}".format(poses[i]);
+    yield "current-pos={0}".format(poses[i]); #not work for spanish, good for dutch
     pos = data["posed_words"].get(words[i], dict())
     if len(pos) == 0:
         yield "max-pos-current={0}".format(0)
