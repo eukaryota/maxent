@@ -40,11 +40,22 @@ def compute_features(data, words, poses, i, previous_label):
     if previous_label != "O":
         yield "label-previous={0}".format(previous_label)
 
-    #if i > 0 and poses[i - 1] == Punc:
-    #    yield "label-previous={0}".format(previous_label)
-
     yield "prev_pos={0}".format(poses[i - 1] if i >= 1 else "^");
     yield "prevprev_pos={0}".format(poses[i - 2] if i >= 2 else "^");
+
+    if (previous_label == '^'):
+        if (i < len(words) - 1):
+            yield "next-pos={0}".format(poses[i + 1]) 
+            yield "next-first-letter-up={0}".format(words[i + 1][0].isupper());
+            yield "next-word={0}".format(words[i + 1].lower());
+
+        #if (i + 3 < len(words)) and (not words[i + 1][0].isupper()) and (not words[i + 2][0].isupper()) and (words[i + 3][0].isupper()):
+        #    yield "very_long_sequence.{0}.{1}".format(words[i + 1], words[i + 2])            
+        #elif (i + 2 < len(words)) and (not words[i + 1][0].isupper()) and (words[i + 2][0].isupper()):
+        #    yield "long_sequence.{0}".format(words[i + 1])
+
+    #if i > 0 and poses[i - 1] == Punc:
+    #    yield "label-previous={0}".format(previous_label)
     
     #yield "next-pos={0}".format(poses[i + 1] if i < len(poses) - 1 else "^");
     #yield "nextnext-pos={0}".format(poses[i + 2] if i < len(poses) - 2 else "^");
