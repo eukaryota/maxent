@@ -14,6 +14,8 @@ from collections import defaultdict
 from maxent import MaxentModel
 from optparse import OptionParser
 
+from counter import Counter
+
 # |iterable| should yield lines.
 def read_sentences(iterable):
     sentence = []
@@ -94,12 +96,26 @@ def compute_features(data, words, poses, i, previous_label):
     #    yield "prefix-name=True";
     #else:
     #    yield "prefix-name=False"
+    lpw = words[i-1].lower()
+    flag = 0
+    if (previous_label == "O" and words[i][0].isupper())
+        if lpw in data["unigrams"]["B-ORG"]:
+            flag = 1
+            yield "unigram-org={0}".format(lpw)
+        if lpw in data["unigrams"]["B-LOC"]:
+            flag = 1
+            yield "unigram-loc={0}".format(lpw)
+        if lpw in data["unigrams"]["B-PER"]:
+            flag = 1
+            yield "unigram-per={0}".format(lpw)
+        if lpw in data["unigrams"]["B-MISC"]:
+            flag = 1
+            yield "unigram-misc={0}".format(lpw)
 
     labels = data["labelled_words"].get(words[i], dict())
     labels = filter(lambda item: item[1] > MIN_LABEL_FREQUENCY, labels.items())
     for label in labels:
         yield "was-labelled-as={0}".format(label)
-
 
     yield "current-pos={0}".format(poses[i]); #not work for spanish, good for dutch
     pos = data["posed_words"].get(words[i], dict())
@@ -121,14 +137,24 @@ def train_model(options, iterable):
     # C'est la vie.
     data["labelled_words"] = dict()
     data["posed_words"] = dict()
+    data["unigrams"] = dict()
 
     print >>sys.stderr, "*** Training options are:"
     print >>sys.stderr, "   ", options
 
     print >>sys.stderr, "*** First pass: Computing statistics..."
+
+    unigrams = dict()
+    unigrams["B-ORG"] = defaultdict(long)
+    unigrams["B-MISC"] = defaultdict(long)
+    unigrams["B-LOC"] = defaultdict(long)
+    unigrams["B-PER"] = defaultdict(long)
+
     for n, sentence in enumerate(iterable):
         if (n % 1000) == 0:
             print >>sys.stderr, "   {0:6d} sentences...".format(n)
+        previous_word = "^"
+        previous_label = "^"
         for word, pos, label in sentence:
             data["word_frequencies"][word] += 1
             if label.startswith("B-") or label.startswith("I-"):
@@ -139,6 +165,27 @@ def train_model(options, iterable):
             if word not in data["posed_words"]:
                 data["posed_words"][word] = defaultdict(long)
             data["posed_words"][word][pos] += 1
+
+            if label.startswith("B-") and (previous_word != "^"):
+                unigrams[label][previous_word.lower()] += 1
+
+            previous_label = label
+            previous_word = word
+
+    unigram_counters = [Counter(unigrams[key]) for key in unigrams]
+    total_count = Counter()
+    for counter in unigram_counters:
+         total_count += counter
+
+    total_count = dict(total_count)
+    inv_total_freq  = dict([[key, (math.log(sum(total_count.values()) /  total_count[key]) ** 3)] for key in total_count])
+    
+    for label in unigrams:
+        all_sum = sum([unigrams[label][word] for word in unigrams[label]])
+        uni = sorted([[(1.0 * unigrams[label][word] * inv_total_freq[word] / all_sum ), word] for word in unigrams[label]])
+        uni = [word[1] for word in uni]
+        data["unigrams"][label] = uni[-50:]
+
 
     print >>sys.stderr, "*** Second pass: Collecting features..."
     model.begin_add_event()
