@@ -34,7 +34,7 @@ MIN_WORD_FREQUENCY = 3
 MIN_LABEL_FREQUENCY = 1
 
 DUTCH = False
-SPANISH = False
+SPANISH = True
 
 #FUNCTION_WORDS = ['de', 'het', 'een', 'la', 'el', 'un', 'los']
 
@@ -54,8 +54,8 @@ def compute_features(data, words, poses, i, previous_label):
 
     if previous_label == '^':
         if i < len(words) - 1:
-            if DUTCH:
-                yield "next-pos={0}".format(poses[i + 1]);
+            #if DUTCH:
+            #    yield "next-pos={0}".format(poses[i + 1]);
             yield "next-first-letter-up={0}".format(words[i + 1][0].isupper());
             yield "next-word={0}".format(words[i + 1].lower());
 
