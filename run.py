@@ -35,33 +35,50 @@ def read_sentences(iterable):
 MIN_WORD_FREQUENCY = 3
 MIN_LABEL_FREQUENCY = 1
 
+DUTCH = False
+SPANISH = False
+
 #FUNCTION_WORDS = ['de', 'het', 'een', 'la', 'el', 'un', 'los']
+
+# |lpw| lower-cased previous word
+# |w| current word
+# |pl| previous label
+def set_unigrams(lpw, w, pl, uni):
+    if pl  == "O" and w.isupper():
+        if lpw in uni["B-ORG"]:
+            return "unigram-org={0}".format(lpw)
+        if lpw in uni["B-LOC"]:
+            return "unigram-loc={0}".format(lpw)
+        if lpw in uni["B-PER"]:
+            return "unigram-per={0}".format(lpw)
+        if lpw in uni["B-MISC"]:
+            return  "unigram-misc={0}".format(lpw)
+    return ""
 
 def compute_features(data, words, poses, i, previous_label):
     # Condition on previous label.
     if previous_label != "O":
         yield "label-previous={0}".format(previous_label)
 
-    yield "prev_pos={0}".format(poses[i - 1] if i >= 1 else "^");
-    yield "prevprev_pos={0}".format(poses[i - 2] if i >= 2 else "^");
+    yield "prev_pos={0}".format(poses[i - 1] if i >= 1 else "<start>");
+    yield "prevprev_pos={0}".format(poses[i - 2] if i >= 2 else "<start>");
 
-    if (previous_label == '^'):
-        if (i < len(words) - 1):
-            yield "next-pos={0}".format(poses[i + 1]) 
+    if SPANISH:
+        yield "next-pos={0}".format(poses[i + 1] if i < len(poses) - 1 else "<end>");
+        yield "nextnext-pos={0}".format(poses[i + 2] if i < len(poses) - 2 else "<end>");
+
+    #yield "prev-word-is-number={0}".format(words[i - 1].isdigit() if i > 0 else "False")
+
+    if previous_label == '^':
+        if i < len(words) - 1:
+            if DUTCH:
+                yield "next-pos={0}".format(poses[i + 1]);
             yield "next-first-letter-up={0}".format(words[i + 1][0].isupper());
             yield "next-word={0}".format(words[i + 1].lower());
-
-        #if (i + 3 < len(words)) and (not words[i + 1][0].isupper()) and (not words[i + 2][0].isupper()) and (words[i + 3][0].isupper()):
-        #    yield "very_long_sequence.{0}.{1}".format(words[i + 1], words[i + 2])            
-        #elif (i + 2 < len(words)) and (not words[i + 1][0].isupper()) and (words[i + 2][0].isupper()):
-        #    yield "long_sequence.{0}".format(words[i + 1])
 
     #if i > 0 and poses[i - 1] == Punc:
     #    yield "label-previous={0}".format(previous_label)
     
-    #yield "next-pos={0}".format(poses[i + 1] if i < len(poses) - 1 else "^");
-    #yield "nextnext-pos={0}".format(poses[i + 2] if i < len(poses) - 2 else "^");
-
     #yield "prefix-word={0}".format("president" in words[i - 1].lower())
 
     word = words[i]
@@ -72,14 +89,16 @@ def compute_features(data, words, poses, i, previous_label):
     if data["word_frequencies"].get(words[i], 0) >= MIN_WORD_FREQUENCY:
         yield "word-current={0}".format(words[i])
         #yield "word-len={0}".format(len(words[i]));
-        yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
-
+        if DUTCH:
+            yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
+    
     yield "word-is-article={0}".format(poses[i] == 'DA' or poses[i] == 'Art' or poses[i] == 'Prep');
     #yield "word-is-punc={0}".format(poses[i] == 'Punc');
 
     yield "first-word={0}".format(i == 0);
     yield "first-letter-up={0}".format(words[i][0].isupper());
-    yield "word-letter-lower={0}".format(words[i][0].islower()); #not work for spanish, good for dutch
+    if DUTCH:
+        yield "word-letter-lower={0}".format(words[i][0].islower()); #not work for spanish, good for dutch
 
     yield "word-has-up={0}".format(re.match(r".*[A-Z]", words[i]) != None);
 
@@ -96,28 +115,17 @@ def compute_features(data, words, poses, i, previous_label):
     #    yield "prefix-name=True";
     #else:
     #    yield "prefix-name=False"
-    lpw = words[i-1].lower()
-    flag = 0
-    if (previous_label == "O" and words[i][0].isupper())
-        if lpw in data["unigrams"]["B-ORG"]:
-            flag = 1
-            yield "unigram-org={0}".format(lpw)
-        if lpw in data["unigrams"]["B-LOC"]:
-            flag = 1
-            yield "unigram-loc={0}".format(lpw)
-        if lpw in data["unigrams"]["B-PER"]:
-            flag = 1
-            yield "unigram-per={0}".format(lpw)
-        if lpw in data["unigrams"]["B-MISC"]:
-            flag = 1
-            yield "unigram-misc={0}".format(lpw)
+    uni = set_unigrams(words[i-1].lower(), words[i], previous_label, data["unigrams"])
+    if uni != "":
+        yield uni
 
     labels = data["labelled_words"].get(words[i], dict())
     labels = filter(lambda item: item[1] > MIN_LABEL_FREQUENCY, labels.items())
     for label in labels:
         yield "was-labelled-as={0}".format(label)
 
-    yield "current-pos={0}".format(poses[i]); #not work for spanish, good for dutch
+    if DUTCH:
+        yield "current-pos={0}".format(poses[i]); #not work for spanish, good for dutch
     pos = data["posed_words"].get(words[i], dict())
     if len(pos) == 0:
         yield "max-pos-current={0}".format(0)
@@ -300,6 +308,11 @@ def main():
 
     with open(options.filename, "r") as handle:
         data = list(read_sentences(handle))
+
+    if options.model == "spanish":
+        SPANISH = True
+    if options.model == "dutch":
+        DUTCH = True
 
     if options.train:
         print >>sys.stderr, "*** Training model..."
