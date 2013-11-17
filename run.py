@@ -48,7 +48,10 @@ def compute_features(data, words, poses, i, previous_label):
 
     if SPANISH:
         yield "next-pos={0}".format(poses[i + 1] if i < len(poses) - 1 else "<end>");
+        yield "next-word={0}".format(words[i + 1] if i < len(words) - 1 else "<end>");
         yield "nextnext-pos={0}".format(poses[i + 2] if i < len(poses) - 2 else "<end>");
+        yield "nextnext-word={0}".format(words[i + 2] if i < len(words) - 2 else "<end>");
+
 
     #yield "prev-word-is-number={0}".format(words[i - 1].isdigit() if i > 0 else "False")
 
