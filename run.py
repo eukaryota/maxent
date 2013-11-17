@@ -48,21 +48,28 @@ def compute_features(data, words, poses, i, previous_label):
 
     #yield "prefix-word={0}".format("president" in words[i - 1].lower())
 
+    word = words[i]
+    if word.endswith("zee") or word.endswith("stad") or word.endswith("burg") or word.endswith("burgh"):
+        yield "was-labelled-as={0}".format("I-LOC" if previous_label[0] == "B" else "B-LOC")
+
     #print words[i]
     if data["word_frequencies"].get(words[i], 0) >= MIN_WORD_FREQUENCY:
         yield "word-current={0}".format(words[i])
         #yield "word-len={0}".format(len(words[i]));
-        yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
-        #yield "word-prefix4={0}".format(words[i][:4]); #not work for spanish, good for dutch
+        #yield "word-prefix3={0}".format(words[i][:3]); #not work for spanish, good for dutch
 
     yield "word-is-article={0}".format(poses[i] == 'DA' or poses[i] == 'Art' or poses[i] == 'Prep');
     #yield "word-is-punc={0}".format(poses[i] == 'Punc');
 
     yield "first-word={0}".format(i == 0);
     yield "first-letter-up={0}".format(words[i][0].isupper());
-    yield "word-up={0}".format(words[i] == words[i].upper());
+    yield "word-letter-lower={0}".format(words[i][0].islower());
+
     yield "word-has-up={0}".format(re.match(r".*[A-Z]", words[i]) != None);
+
+    yield "word-up={0}".format(words[i] == words[i].upper());
     yield "word-lower={0}".format(words[i] == words[i].lower());
+
     yield "word-is-digit={0}".format(words[i].isdigit());
     #yield "word-is-alnum={0}".format(words[i].isalnum());
     yield "word-is-alpha={0}".format(words[i].isalpha());
@@ -74,15 +81,13 @@ def compute_features(data, words, poses, i, previous_label):
     #else:
     #    yield "prefix-name=False"
 
-    #print data["labelled_words"].get(words[i], dict())
     labels = data["labelled_words"].get(words[i], dict())
     labels = filter(lambda item: item[1] > MIN_LABEL_FREQUENCY, labels.items())
-
     for label in labels:
         yield "was-labelled-as={0}".format(label)
 
-    #print data["posed_words"].get(words[i], dict())
 
+    yield "current-pos={0}".format(poses[i]);
     pos = data["posed_words"].get(words[i], dict())
     if len(pos) == 0:
         yield "max-pos-current={0}".format(0)
